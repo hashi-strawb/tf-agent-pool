@@ -144,3 +144,6 @@ resource "aws_instance" "agent" {
 
 }
 
+output "ec2_instance_connect_url" {
+  value = "https://eu-west-2.console.aws.amazon.com/ec2/home?region=eu-west-2#ConnectToInstance:instanceId=${aws_instance.agent.id}"
+}
