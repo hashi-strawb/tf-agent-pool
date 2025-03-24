@@ -140,8 +140,6 @@ resource "aws_instance" "agent" {
 
     wget https://releases.hashicorp.com/tfc-agent/1.22.0-rc.1/tfc-agent_1.22.0-rc.1_linux_arm64.zip
     unzip tfc-agent*.zip
-
-    /home/ec2-user/tfc-agent &
   EOF
 
 }
