@@ -135,13 +135,16 @@ resource "aws_instance" "agent" {
   # Doesn't seem like this does actually work...
   user_data = <<-EOF
     #!/bin/bash
-    echo "export TFC_AGENT_NAME=${var.tfc_agent_name}"   >> /home/ec2-user/.bashrc
+    echo "export TFC_AGENT_NAME=$(hostname)"             >> /home/ec2-user/.bashrc
     echo "export TFC_AGENT_TOKEN=${var.tfc_agent_token}" >> /home/ec2-user/.bashrc
 
     cd /home/ec2-user
 
     wget https://releases.hashicorp.com/tfc-agent/1.22.0-rc.1/tfc-agent_1.22.0-rc.1_linux_arm64.zip
     unzip tfc-agent*.zip
+
+    # Dependencies
+    sudo yum install git -y
   EOF
 
 }
