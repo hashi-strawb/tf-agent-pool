@@ -91,23 +91,9 @@ resource "aws_security_group" "outbound_http_tfc" {
   }
 }
 
-data "aws_ami" "amazon-linux-2" {
-  most_recent = true
-
-  filter {
-    name   = "owner-alias"
-    values = ["amazon"]
-  }
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm*"]
-  }
-}
-
 # Now create the EC2 instance
 resource "aws_instance" "agent" {
-  ami = data.aws_ami.amazon-linux-2.id
+  ami = "ami-0c41542cdc0e23561" # picked from the catalog by hand
 
   associate_public_ip_address = true
 
@@ -122,5 +108,12 @@ resource "aws_instance" "agent" {
   lifecycle {
     create_before_destroy = true
   }
+
+
+  user_data = <<EOF
+    #!/bin/bash
+    echo "TFC_AGENT_NAME=${var.tfc_agent_name}"   >> /root/.bashrc
+    echo "TFC_AGENT_TOKEN=${var.tfc_agent_token}" >> /root/.bashrc
+  EOF
 }
 
