@@ -76,31 +76,53 @@ resource "aws_security_group" "ec2_instance_connect" {
 
 data "tfe_ip_ranges" "addresses" {}
 
-resource "aws_security_group" "outbound_http_tfc" {
-  name        = "outbound_http_tfc"
-  description = "Allow outbound HTTP access to TFC APIs"
+
+moved {
+  from = aws_security_group.outbound_http_tfc
+  to   = aws_security_group.outbound_http
+}
+
+resource "aws_security_group" "outbound_http" {
+  name        = "outbound_http"
+  description = "Allow outbound HTTP(S) access to everywhere"
 
   vpc_id = module.vpc.vpc_id
 
   egress {
-    from_port        = "443"
-    to_port          = "443"
-    protocol         = "tcp"
-    cidr_blocks      = data.tfe_ip_ranges.addresses.api
-    ipv6_cidr_blocks = ["::/0"]
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+    from_port = 443
+    ipv6_cidr_blocks = [
+      "::/0",
+    ]
+    protocol = "tcp"
+    to_port  = 443
+  }
+  egress {
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+    from_port = 80
+    ipv6_cidr_blocks = [
+      "::/0",
+    ]
+    protocol = "tcp"
+    to_port  = 80
   }
 }
 
 # Now create the EC2 instance
 resource "aws_instance" "agent" {
-  ami = "ami-0c41542cdc0e23561" # picked from the catalog by hand
+  ami = "ami-0c41542cdc0e23561" # picked from the catalog by hand 
+  # TODO: https://discuss.hashicorp.com/t/how-to-filters-amazon-linux-3-with-graviton-and-gp3-type/52933/2
 
   associate_public_ip_address = true
 
   instance_type = "t4g.nano"
   vpc_security_group_ids = [
     aws_security_group.ec2_instance_connect.id,
-    aws_security_group.outbound_http_tfc.id,
+    aws_security_group.outbound_http.id,
   ]
 
   subnet_id = module.vpc.public_subnets[0]
@@ -110,10 +132,17 @@ resource "aws_instance" "agent" {
   }
 
 
-  user_data = <<EOF
+  # Doesn't seem like this does actually work...
+  user_data = <<-EOF
     #!/bin/bash
-    echo "TFC_AGENT_NAME=${var.tfc_agent_name}"   >> /root/.bashrc
-    echo "TFC_AGENT_TOKEN=${var.tfc_agent_token}" >> /root/.bashrc
+    echo "export TFC_AGENT_NAME=${var.tfc_agent_name}"   >> /home/ec2-user
+    echo "export TFC_AGENT_TOKEN=${var.tfc_agent_token}" >> /home/ec2-user
+
+    wget https://releases.hashicorp.com/tfc-agent/1.22.0-rc.1/tfc-agent_1.22.0-rc.1_linux_arm64.zip
+    unzip tfc-agent*.zip
+
+    /home/ec2-user/tfc-agent &
   EOF
+
 }
 
